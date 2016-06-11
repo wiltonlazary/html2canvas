@@ -8,9 +8,7 @@ module.exports = function(grunt) {
         banner: '/*\n  <%= pkg.title || pkg.name %> <%= pkg.version %>' +
             '<%= pkg.homepage ? " <" + pkg.homepage + ">" : "" %>' + '\n' +
             '  Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>' +
-            '\n\n  Released under <%= _.pluck(pkg.licenses, "type").join(", ") %> License\n*/\n',
-        pre: '\n(function(window, document, module, exports, global, define, undefined){\n\n',
-        post: '\n}).call({}, window, document);'
+            '\n\n  Released under <%= _.pluck(pkg.licenses, "type").join(", ") %> License\n*/\n'
     };
 
     var browsers = {
@@ -39,16 +37,6 @@ module.exports = function(grunt) {
             version: "11",
             platform: "Windows 8.1"
         },
-        safari6: {
-            browserName: "safari",
-            version: "6",
-            platform: "OS X 10.8"
-        },
-        safari7:{
-            browserName: "safari",
-            platform: "OS X 10.9",
-            version: "7"
-        },
         chromeOSX:{
             browserName: "chrome",
             platform: "OS X 10.8",
@@ -59,16 +47,18 @@ module.exports = function(grunt) {
 
         pkg: grunt.file.readJSON('package.json'),
 
-        concat: {
+        browserify: {
             dist: {
-                src: [
-                    'src/promise.js', 'src/fallback.js', 'src/punycode/punycode.js', 'src/core.js',  'src/*.js', 'src/renderers/*.js'
-                ],
-                nonull: true,
+                src: ['src/core.js'],
                 dest: 'dist/<%= pkg.name %>.js',
-                options:{
-                    banner: meta.banner + meta.pre,
-                    footer: meta.post
+                options: {
+                    browserifyOptions: {
+                        standalone: 'html2canvas'
+                    },
+                    banner: meta.banner,
+                    plugin: [
+                        [ "browserify-derequire" ]
+                    ]
                 }
             },
             svg: {
@@ -77,8 +67,13 @@ module.exports = function(grunt) {
                 ],
                 dest: 'dist/<%= pkg.name %>.svg.js',
                 options:{
-                    banner: meta.banner + '\n(function(window, document, exports, undefined){\n\n',
-                    footer: '\n}).call({}, window, document, html2canvas);'
+                    browserifyOptions: {
+                        standalone: 'html2canvas.svg'
+                    },
+                    banner: meta.banner,
+                    plugin: [
+                        [ "browserify-derequire" ]
+                    ]
                 }
             }
         },
@@ -149,11 +144,11 @@ module.exports = function(grunt) {
         },
         uglify: {
             dist: {
-                src: ['<%= concat.dist.dest %>'],
+                src: ['<%= browserify.dist.dest %>'],
                 dest: 'dist/<%= pkg.name %>.min.js'
             },
             svg: {
-                src: ['<%= concat.svg.dest %>'],
+                src: ['<%= browserify.svg.dest %>'],
                 dest: 'dist/<%= pkg.name %>.svg.min.js'
             },
             options: {
@@ -165,8 +160,14 @@ module.exports = function(grunt) {
             tasks: ['jshint', 'build']
         },
         jshint: {
-            all: ['src/*.js', 'src/renderers/*.js',  '!src/promise.js'],
+            all: ['src/*.js', 'src/renderers/*.js'],
             options: grunt.file.readJSON('./.jshintrc')
+        },
+        mochacli: {
+            options: {
+                reporter: 'spec'
+            },
+            all: ['tests/node/*.js']
         },
         mocha_phantomjs: {
             all: ['tests/mocha/**/*.html']
@@ -198,17 +199,18 @@ module.exports = function(grunt) {
         });
     });
 
+    grunt.loadNpmTasks('grunt-browserify');
     grunt.loadNpmTasks('grunt-mocha-phantomjs');
     grunt.loadNpmTasks('grunt-contrib-watch');
-    grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-connect');
     grunt.loadNpmTasks('grunt-execute');
+    grunt.loadNpmTasks('grunt-mocha-cli');
 
     grunt.registerTask('server', ['connect:cors', 'connect:proxy', 'connect:altServer', 'connect:server']);
-    grunt.registerTask('build', ['execute', 'concat', 'uglify']);
-    grunt.registerTask('default', ['jshint', 'build', 'connect:altServer', 'mocha_phantomjs']);
+    grunt.registerTask('build', ['execute', 'browserify', 'uglify']);
+    grunt.registerTask('default', ['jshint', 'build', 'mochacli', 'connect:altServer', 'mocha_phantomjs']);
     grunt.registerTask('travis', ['jshint', 'build', 'connect:altServer', 'connect:ci', 'connect:proxy', 'connect:cors', 'mocha_phantomjs', 'webdriver']);
 
 };

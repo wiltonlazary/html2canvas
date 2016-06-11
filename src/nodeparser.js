@@ -1,3 +1,17 @@
+var log = require('./log');
+var punycode = require('punycode');
+var NodeContainer = require('./nodecontainer');
+var TextContainer = require('./textcontainer');
+var PseudoElementContainer = require('./pseudoelementcontainer');
+var FontMetrics = require('./fontmetrics');
+var Color = require('./color');
+var StackingContext = require('./stackingcontext');
+var utils = require('./utils');
+var bind = utils.bind;
+var getBounds = utils.getBounds;
+var parseBackgrounds = utils.parseBackgrounds;
+var offsetBounds = utils.offsetBounds;
+
 function NodeParser(element, renderer, support, imageLoader, options) {
     log("Starting NodeParser");
     this.renderer = renderer;
@@ -418,9 +432,9 @@ NodeParser.prototype.paintFormValue = function(container) {
 
 NodeParser.prototype.paintText = function(container) {
     container.applyTextTransform();
-    var characters = window.html2canvas.punycode.ucs2.decode(container.node.data);
+    var characters = punycode.ucs2.decode(container.node.data);
     var textList = (!this.options.letterRendering || noLetterSpacing(container)) && !hasUnicode(container.node.data) ? getWords(characters) : characters.map(function(character) {
-        return window.html2canvas.punycode.ucs2.encode([character]);
+        return punycode.ucs2.encode([character]);
     });
 
     var weight = container.parent.fontWeight();
@@ -602,14 +616,14 @@ function calculateCurvePoints(bounds, borderRadius, borders) {
         width = bounds.width,
         height = bounds.height,
 
-        tlh = borderRadius[0][0],
-        tlv = borderRadius[0][1],
-        trh = borderRadius[1][0],
-        trv = borderRadius[1][1],
-        brh = borderRadius[2][0],
-        brv = borderRadius[2][1],
-        blh = borderRadius[3][0],
-        blv = borderRadius[3][1];
+        tlh = borderRadius[0][0] < width / 2 ? borderRadius[0][0] : width / 2,
+        tlv = borderRadius[0][1] < height / 2 ? borderRadius[0][1] : height / 2,
+        trh = borderRadius[1][0] < width / 2 ? borderRadius[1][0] : width / 2,
+        trv = borderRadius[1][1] < height / 2 ? borderRadius[1][1] : height / 2,
+        brh = borderRadius[2][0] < width / 2 ? borderRadius[2][0] : width / 2,
+        brv = borderRadius[2][1] < height / 2 ? borderRadius[2][1] : height / 2,
+        blh = borderRadius[3][0] < width / 2 ? borderRadius[3][0] : width / 2,
+        blv = borderRadius[3][1] < height / 2 ? borderRadius[3][1] : height / 2;
 
     var topWidth = width - trh,
         rightHeight = height - brv,
@@ -793,12 +807,6 @@ function hasOpacity(container) {
     return container.getOpacity() < 1;
 }
 
-function bind(callback, context) {
-    return function() {
-        return callback.apply(context, arguments);
-    };
-}
-
 function asInt(value) {
     return parseInt(value, 10);
 }
@@ -826,7 +834,7 @@ function getWords(characters) {
         if (isWordBoundary(characters[i]) === onWordBoundary) {
             word = characters.splice(0, i);
             if (word.length) {
-                words.push(window.html2canvas.punycode.ucs2.encode(word));
+                words.push(punycode.ucs2.encode(word));
             }
             onWordBoundary =! onWordBoundary;
             i = 0;
@@ -837,7 +845,7 @@ function getWords(characters) {
         if (i >= characters.length) {
             word = characters.splice(0, i);
             if (word.length) {
-                words.push(window.html2canvas.punycode.ucs2.encode(word));
+                words.push(punycode.ucs2.encode(word));
             }
         }
     }
@@ -857,3 +865,5 @@ function isWordBoundary(characterCode) {
 function hasUnicode(string) {
     return (/[^\u0000-\u00ff]/).test(string);
 }
+
+module.exports = NodeParser;

@@ -1,3 +1,5 @@
+var NodeContainer = html2canvas.NodeContainer;
+
 describe('Borders', function() {
     $('#borders div').each(function(i, node) {
         it($(this).attr('style'), function() {
@@ -41,7 +43,7 @@ describe('Background-position', function() {
 
             var container = new NodeContainer(node, null);
             var item = container.css(prop),
-                backgroundPosition = container.parseBackgroundPosition(getBounds(node), img),
+                backgroundPosition = container.parseBackgroundPosition(html2canvas.utils.getBounds(node), img),
                 split = (window.getComputedStyle) ? $(node).css(prop).split(" ") : [$(node).css(prop+"X"), $(node).css(prop+"Y")];
 
             var testEl = $('<div />').css({
@@ -65,26 +67,28 @@ describe('Text-shadow', function() {
         var index = i + 1;
         var container = new NodeContainer(node, null);
         var shadows = container.parseTextShadows();
-        if (i === 0) {
-            expect(shadows.length).to.equal(0);
-        } else {
-            expect(shadows.length).to.equal(i >= 6 ? 2 : 1);
-            expect(shadows[0].offsetX).to.equal(i);
-            expect(shadows[0].offsetY).to.equal(i);
-            if (i < 2) {
-                expect(shadows[0].color.toString()).to.equal('rgba(0,0,0,0)');
-            } else if (i % 2 === 0) {
-                expect(shadows[0].color.toString()).to.equal('rgb(2,2,2)');
+        it(node.style.textShadow, function() {
+            if (i === 0) {
+                expect(shadows.length).to.equal(0);
             } else {
-                var opacity = '0.2';
-                expect(shadows[0].color.toString()).to.match(/rgba\(2,2,2,(0.2|0\.199219)\)/);
-            }
+                expect(shadows.length).to.equal(i >= 6 ? 2 : 1);
+                expect(shadows[0].offsetX).to.equal(i);
+                expect(shadows[0].offsetY).to.equal(i);
+                if (i < 2) {
+                    expect(shadows[0].color.toString()).to.equal('rgba(0,0,0,0)');
+                } else if (i % 2 === 0) {
+                    expect(shadows[0].color.toString()).to.equal('rgb(2,2,2)');
+                } else {
+                    var opacity = '0.2';
+                    expect(shadows[0].color.toString()).to.match(/rgba\(2,2,2,(0.2|0\.199219)\)/);
+                }
 
-            // only testing blur once
-            if (i === 1) {
-                expect(shadows[0].blur).to.equal('1');
+                // only testing blur once
+                if (i === 1) {
+                    expect(shadows[0].blur).to.equal('1');
+                }
             }
-        }
+        });
     });
 });
 
@@ -210,7 +214,7 @@ describe('Background-image', function() {
 
     function test_parse_background_image(value, expected, name) {
         it(name, function() {
-            expect(parseBackgrounds(value)).to.eql(Array.isArray(expected) ? expected : [expected]);
+            expect(html2canvas.utils.parseBackgrounds(value)).to.eql(Array.isArray(expected) ? expected : [expected]);
         });
     }
 });
